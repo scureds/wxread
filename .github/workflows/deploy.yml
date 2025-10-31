@@ -9,7 +9,7 @@ on:
     # 凌晨任务：北京时间每天 01:00（UTC 前一天 17:00）
     # - cron: '0 17 * * *'
     # 早间任务：北京时间每天 07:00（UTC 前一天 23:00）
-    - cron: '0 23 * * *'
+    - cron: '0 22 * * *'
     # 午间任务：北京时间每天 11:40（UTC 03:40）
     #- cron: '40 3 * * *'
     # 晚间任务：北京时间每天 22:00（UTC 14:00）
@@ -44,7 +44,7 @@ jobs:
     - name: Generate random READ_NUM
       id: random
       run: |
-        RANDOM_NUM=$((RANDOM % 17 + 60))
+        RANDOM_NUM=$((RANDOM % 19 + 120))
         echo "READ_NUM=$RANDOM_NUM" >> $GITHUB_OUTPUT
         echo "Generated READ_NUM: $RANDOM_NUM"
 
