@@ -61,7 +61,12 @@ jobs:
         READ_NUM: ${{ steps.random.outputs.READ_NUM }}  # 使用生成的随机数
       run: |
         python main.py
-
+    - name: Trigger Callback on Failure
+      if: failure()  # 仅在之前的步骤出错时运行
+      run: |
+              curl -X POST -H "Content-Type: application/json" \
+              -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"微信阅读脚本失败，运行ID: ${{ github.run_id }}\"}}" \
+              ${{ secrets.FEISHU_WEBHOOK }}
   keepalive-job:
     name: Keepalive Workflow
     if: ${{ always() }}
