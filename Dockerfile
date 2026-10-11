@@ -12,15 +12,11 @@ ENV PATH="/usr/local/bin:${PATH}"
 # 复制项目文件
 COPY main.py push.py config.py log_utils.py scheduler.py ./
 
-# 安装 Python 依赖
+# 安装 Python 依赖（加入 apscheduler 供 scheduler.py 运行）
 RUN python -m pip install --no-cache-dir \
     'requests>=2.32.3' \
-    'urllib3>=2.2.3'
-
-# 创建 cron 任务（每天凌晨1点执行）
-RUN echo "0 1 * * * cd /app && /usr/local/bin/python3 main.py >> /app/logs/\$(date +\%Y-\%m-\%d).log 2>&1" > /etc/cron.d/wxread-cron
-RUN chmod 0644 /etc/cron.d/wxread-cron
-RUN crontab /etc/cron.d/wxread-cron
+    'urllib3>=2.2.3' \
+    'APScheduler>=3.10.4,<4'
 
 # 启动命令
 CMD ["python", "scheduler.py"]
