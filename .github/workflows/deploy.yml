@@ -6,17 +6,21 @@ concurrency:
 
 on:
   schedule:
-    # 凌晨任务：北京时间每天 01:00（UTC 前一天 17:00）
-    # - cron: '0 17 * * *'
-    # 早间任务：北京时间每天 07:00（UTC 前一天 23:00）
-    - cron: '0 22 * * *'
-    # 午间任务：北京时间每天 11:40（UTC 03:40）
-    #- cron: '40 3 * * *'
-    # 晚间任务：北京时间每天 22:00（UTC 14:00）
-    #- cron: '0 14 * * *'
+    # 早间任务：北京时间每天 07:07（UTC 前一天 23:07），避开 GitHub Actions 整点高峰
+    - cron: '7 23 * * *'
   workflow_dispatch:  # 手动触发
 
 jobs:
+  # 保活任务独立并行运行（无需等待 deploy 步骤）
+  # 工作流启动后几秒内自动刷新 GitHub 60天休眠计时器，彻底与阅读逻辑解耦
+  keepalive-job:
+    name: Keepalive Workflow
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1.2.1
+
   deploy:
     runs-on: ubuntu-22.04
     environment: AutoRead  # 指定环境
@@ -29,10 +33,10 @@ jobs:
         echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf
 
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v7
       with:
         python-version: '3.10'
 
@@ -57,22 +61,14 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         SERVERCHAN_SPT:  ${{ secrets.SERVERCHAN_SPT }}
-        # READ_NUM: ${{ vars.READ_NUM }}  # 使用 Repository Variables
         READ_NUM: ${{ steps.random.outputs.READ_NUM }}  # 使用生成的随机数
       run: |
         python main.py
+
     - name: Trigger Callback on Failure
       if: failure()  # 仅在之前的步骤出错时运行
       run: |
-              curl -X POST -H "Content-Type: application/json" \
-              -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"微信阅读脚本失败，运行ID: ${{ github.run_id }}\"}}" \
-              ${{ secrets.FEISHU_WEBHOOK }}
-  keepalive-job:
-    name: Keepalive Workflow
-    if: ${{ always() }}
-    needs: deploy
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: liskin/gh-workflow-keepalive@v1.2.1
+        curl -X POST -H "Content-Type: application/json" \
+        -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"微信阅读脚本失败，运行ID: ${{ github.run_id }}\"}}" \
+        ${{ secrets.FEISHU_WEBHOOK }}
+
